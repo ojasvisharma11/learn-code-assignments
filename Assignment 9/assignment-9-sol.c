@@ -34,7 +34,8 @@ int create_message_queue()
 {
     key_t key = ftok("progfile", 65);
     int msgid = msgget(key, 0666 | IPC_CREAT);
-	  return msgid;
+    // printf("%d", msgid);
+	return msgid;
 }
 
 
@@ -66,7 +67,7 @@ result_t *recv_result(int msgid)
 //Delete the message queue
 void delete_message_queue(int msgid)
 {
-	
+	msgctl(msgid, IPC_RMID, NULL);
 }
 void parent(){
 
@@ -108,6 +109,7 @@ int main(int argc, char* argv[])
 { 
 	pid_t cid; 
 	msgid = create_message_queue(); 
+    // printf("%d", msgid);
 	scanf("%d",&commands);
 	if(msgid <= 0 )
 	{
