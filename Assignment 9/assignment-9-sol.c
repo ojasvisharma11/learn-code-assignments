@@ -34,7 +34,6 @@ int create_message_queue()
 {
     key_t key = ftok("msgQueue", 65);
     int msgid = msgget(key, 0666 | IPC_CREAT);
-    printf("msgid = %d\n", msgid);
     return msgid;
 }
 
@@ -43,69 +42,76 @@ int create_message_queue()
 //msgid - ID of the Message queue
 int send_command(int msgid, command_t cmd)
 {
-    int operatorStatus = msgsnd(msgid, &cmd.command, sizeof(cmd.command), 0);
-    int operand1Status = msgsnd(msgid, &cmd.args[0], sizeof(cmd.args[0]), 0);
-    int operand2Status = msgsnd(msgid, &cmd.args[1], sizeof(cmd.args[1]), 0);
+    cmd.type = 1;
     int cmdStatus = msgsnd(msgid, &cmd, sizeof(cmd), 0);
-    printf("%d \n", cmdStatus);
-    if(operatorStatus>=0 && operand1Status>=0 && operand2Status>=0){
-        return 0;
-    }
-    return -1;
+    return cmdStatus;
 }
 //Read the command from the message queue
 //msgid - ID of the Message queue
 command_t *recv_command(int msgid)
 {
-    int message;
-    msgrcv(msgid, &message, sizeof(message), 1, 0);
-    printf("%d", message);
-    return NULL;
+    command_t *cmd = (command_t*) malloc(sizeof(command_t));
+    msgrcv(msgid, &cmd, sizeof(cmd), 1, 0);
+    return cmd;
 }
 
 //Send the result via message queue
 //msgid - ID of the Message queue
 int send_result(int msgid, result_t result)
 {
-    return 0;
+    result.type = 2;
+    int resultStatus = msgsnd(msgid, &result, sizeof(result_t), 0);
+    return resultStatus;
 }
 //Read the Result from the message queue
 //msgid - ID of the Message queue
 result_t *recv_result(int msgid)
 {
-    return NULL;
+    result_t *result = (result_t*) malloc(sizeof(result_t));
+    msgrcv(msgid, &result, sizeof(result), 2, 0);
+    return result;
 }
 //Delete the message queue
 void delete_message_queue(int msgid)
 {
     msgctl(msgid, IPC_RMID, NULL);
 }
+
+int add(int operand1, int operand2){
+    return operand1 + operand2;
+}
+
+int sub(int operand1, int operand2){
+    return operand1 - operand2;
+}
+
+int mul(int operand1, int operand2){
+    return operand1 * operand2;
+}
+
+result_t *calculateResult(command_t cmd){
+    result_t *result = (result_t*) malloc(sizeof(result_t));
+    if(cmd.command[0] == 'A'){
+        result->result = add(cmd.args[0], cmd.args[1]);
+    }
+    else if(cmd.command[0] == 'S'){
+        result->result = sub(cmd.args[0], cmd.args[1]);
+    }
+    else if(cmd.command[0] == 'M'){
+        result->result = mul(cmd.args[0], cmd.args[1]);
+    }
+    return result;
+}
 void parent(){
 
     for(int i=1;i<=commands;i++)    
     {
-        command_t *cmd = (command_t*) malloc(sizeof(command_t));;
-        result_t *result;
-        char operator[32];
-        scanf("%s", operator);
-        printf("%s ", operator);
-        int operand1, operand2;
-        scanf("%d", &operand1);
-        printf("%d ", operand1);
-        scanf("%d", &operand2);
-        printf("%d\n", operand2);
-        strcpy(cmd->command, operator);
-        cmd->args[0] = operand1;
-        cmd->args[1] = operand2;
+        command_t *cmd = (command_t*) malloc(sizeof(command_t));
+        scanf("%s%d%d", cmd->command, &cmd->args[0], &cmd->args[1]);
+        
         int status = send_command(msgid, *cmd);
-        printf("Return of send_message %d\n", status);
-          //WRITE CODE HERE TO READ THE COMMAND FROM INPUT
-      
-        //SEND THE COMMAND via send_command
-          
-        //RECIEVE THE RESULT from CHILD
-      
-        // printf("CMD=%s, RES = %d\n",cmd->command,result->result);
+        result_t *result = recv_result(msgid);
+        printf("CMD=%s, RES = %d\n",cmd->command,result->result);
         
     }
     printf("Child exited with status:%d\n",get_child_exit_status());
@@ -117,12 +123,11 @@ void child()
     for(int i=1;i<=commands;i++)    
     {
         command_t *cmd;
-        //WRITE CODE to RECIEVE THE COMMAND,use recv_command method.
-        // cmd = recv_command(msgid);
-          //WRITE CODE to process the command.
-      
-        //SEND RESULT via send_result
-      
+        cmd = recv_command(msgid);
+        
+        result_t *result = calculateResult(*cmd);
+        
+        int status = send_result(msgid, *result);
     }
 
         exit(commands); 
