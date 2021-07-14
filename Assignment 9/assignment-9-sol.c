@@ -16,26 +16,26 @@ int commands=0;
 
 typedef struct command_type
 {
-	long type;
-	//The command to execute
-	char command[32];
-	//The arguments for the command
-	int args[2];
+    long type;
+    //The command to execute
+    char command[32];
+    //The arguments for the command
+    int args[2];
 } command_t;
 typedef struct result_type 
 {
-	long type;
-	int result;
+    long type;
+    int result;
 } result_t;
 
 //WRITE YOUR CODE HERE
 //Create a message queue and return the message queue id
 int create_message_queue()
 {
-    key_t key = ftok("progfile", 65);
+    key_t key = ftok("msgQueue", 65);
     int msgid = msgget(key, 0666 | IPC_CREAT);
-    // printf("%d", msgid);
-	return msgid;
+    printf("msgid = %d\n", msgid);
+    return msgid;
 }
 
 
@@ -43,63 +43,87 @@ int create_message_queue()
 //msgid - ID of the Message queue
 int send_command(int msgid, command_t cmd)
 {
-	return 0;
+    int operatorStatus = msgsnd(msgid, &cmd.command, sizeof(cmd.command), 0);
+    int operand1Status = msgsnd(msgid, &cmd.args[0], sizeof(cmd.args[0]), 0);
+    int operand2Status = msgsnd(msgid, &cmd.args[1], sizeof(cmd.args[1]), 0);
+    int cmdStatus = msgsnd(msgid, &cmd, sizeof(cmd), 0);
+    printf("%d \n", cmdStatus);
+    if(operatorStatus>=0 && operand1Status>=0 && operand2Status>=0){
+        return 0;
+    }
+    return -1;
 }
 //Read the command from the message queue
 //msgid - ID of the Message queue
 command_t *recv_command(int msgid)
 {
-	return NULL;
+    int message;
+    msgrcv(msgid, &message, sizeof(message), 1, 0);
+    printf("%d", message);
+    return NULL;
 }
 
 //Send the result via message queue
 //msgid - ID of the Message queue
 int send_result(int msgid, result_t result)
 {
-	return 0;
+    return 0;
 }
 //Read the Result from the message queue
 //msgid - ID of the Message queue
 result_t *recv_result(int msgid)
 {
-	return NULL;
+    return NULL;
 }
 //Delete the message queue
 void delete_message_queue(int msgid)
 {
-	msgctl(msgid, IPC_RMID, NULL);
+    msgctl(msgid, IPC_RMID, NULL);
 }
 void parent(){
 
-	for(int i=1;i<=commands;i++)	
-	{
-		command_t *cmd;
-      	result_t *result;
-      	//WRITE CODE HERE TO READ THE COMMAND FROM INPUT
+    for(int i=1;i<=commands;i++)    
+    {
+        command_t *cmd = (command_t*) malloc(sizeof(command_t));;
+        result_t *result;
+        char operator[32];
+        scanf("%s", operator);
+        printf("%s ", operator);
+        int operand1, operand2;
+        scanf("%d", &operand1);
+        printf("%d ", operand1);
+        scanf("%d", &operand2);
+        printf("%d\n", operand2);
+        strcpy(cmd->command, operator);
+        cmd->args[0] = operand1;
+        cmd->args[1] = operand2;
+        int status = send_command(msgid, *cmd);
+        printf("Return of send_message %d\n", status);
+          //WRITE CODE HERE TO READ THE COMMAND FROM INPUT
       
-		//SEND THE COMMAND via send_command
-      	
+        //SEND THE COMMAND via send_command
+          
         //RECIEVE THE RESULT from CHILD
       
-		printf("CMD=%s, RES = %d\n",cmd->command,result->result);
-		
-	}
-	printf("Child exited with status:%d\n",get_child_exit_status());
-	delete_message_queue(msgid);
+        // printf("CMD=%s, RES = %d\n",cmd->command,result->result);
+        
+    }
+    printf("Child exited with status:%d\n",get_child_exit_status());
+    delete_message_queue(msgid);
 
 }
 void child()
 {
-	for(int i=1;i<=commands;i++)	
-	{
-		command_t *cmd;
+    for(int i=1;i<=commands;i++)    
+    {
+        command_t *cmd;
         //WRITE CODE to RECIEVE THE COMMAND,use recv_command method.
-      
-      	//WRITE CODE to process the command.
+        // cmd = recv_command(msgid);
+          //WRITE CODE to process the command.
       
         //SEND RESULT via send_result
       
-	}
+    }
 
         exit(commands); 
 }
@@ -107,24 +131,23 @@ void child()
 //DO NOT MODIFY CODE BELOW
 int main(int argc, char* argv[]) 
 { 
-	pid_t cid; 
-	msgid = create_message_queue(); 
-    // printf("%d", msgid);
-	scanf("%d",&commands);
-	if(msgid <= 0 )
-	{
-		printf("Message Queue creation failed\n");
-	}
-	cid = fork(); 
+    pid_t cid; 
+    msgid = create_message_queue(); 
+    scanf("%d",&commands);
+    if(msgid <= 0 )
+    {
+        printf("Message Queue creation failed\n");
+    }
+    cid = fork(); 
 
-	// Parent process 
-	if (cid == 0) 
-	{ 
-		child();
-	} else if(cid > 0 )
-	{
-		parent();
-	}
+    // Parent process 
+    if (cid == 0) 
+    { 
+        child();
+    } else if(cid > 0 )
+    {
+        parent();
+    }
 } 
 
 //Get the exit code of the child.
