@@ -33,9 +33,16 @@ int add(linked_list *list, int item)
   //Add your code here
   //list->head head of the list, list->tail is the tail of the list
   //Allocate a new node and attach the head and tail with this node.
-  
-  
-  return 0; //0 represents SUCCESS
+    struct node_t* newNode = (struct node_t*)malloc(sizeof(struct node_t));
+    newNode->data = item;
+    if(list->head == NULL){
+        list->head = newNode;
+        list->tail = newNode;
+    }else{
+        list->tail->next = newNode;
+        list->tail = newNode;
+    }
+    return 0; //0 represents SUCCESS
 }
 
 
